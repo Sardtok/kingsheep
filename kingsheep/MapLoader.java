@@ -2,6 +2,7 @@ package kingsheep;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -14,8 +15,12 @@ class MapLoader {
         BufferedReader in = null;
 
         try {
-            in = new BufferedReader(new FileReader(new File(mapName)));
-        } catch (FileNotFoundException fnfe) {
+            in = new BufferedReader(new InputStreamReader(MapLoader
+                                                          .class
+                                                          .getClassLoader()
+                                                          .getResourceAsStream
+                                                          (mapName)));
+        } catch (NullPointerException e) {
             System.err.printf("Could not open map file '%s'\n", mapName);
             System.exit(1);
         }

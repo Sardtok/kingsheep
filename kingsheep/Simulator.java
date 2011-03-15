@@ -94,8 +94,13 @@ public class Simulator {
                 int oldx = c.x;
                 int oldy = c.y;
                 long startTime = System.nanoTime();
-                c.think(c.filter(map));
-                c.filter(map);
+
+                Type[][] mapCopy = new Type[map.length][map[0].length];
+                for (int i = 0; i < map.length; i++) {
+                    System.arraycopy(map[i], 0, mapCopy[i], 0, map[i].length);
+                }
+                c.think(c.filter(mapCopy));
+
                 int elapsedTime = (int)(System.nanoTime() - startTime)
                     / 1000000;
 
