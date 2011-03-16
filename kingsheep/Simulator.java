@@ -18,7 +18,7 @@ public class Simulator {
 
     /** Minimum time to wait between player turns (even if a player used
         less time to think). */
-    private static final int WAITMIN = 30;
+    private static final int WAITMIN = 500;
 
     /** Number of turns for one game. */
     private static final int TURNS = 100;
@@ -282,6 +282,8 @@ public class Simulator {
         if (t2 == Type.FENCE ||
             (t1 == Type.SHEEP1) && (t2 == Type.WOLF1)  ||
             (t1 == Type.SHEEP2) && (t2 == Type.WOLF2)  ||
+            (t1 == Type.SHEEP1) && (t2 == Type.WOLF2)  ||
+            (t1 == Type.SHEEP2) && (t2 == Type.WOLF1)  ||
             (t1 == Type.SHEEP1) && (t2 == Type.SHEEP2) ||
             (t1 == Type.SHEEP2) && (t2 == Type.SHEEP1) ||
             (t1 == Type.WOLF1)  && (t2 == Type.SHEEP1) ||
