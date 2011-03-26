@@ -101,8 +101,8 @@ public class Simulator {
                 }
                 c.think(c.filter(mapCopy));
 
-                int elapsedTime = (int)(System.nanoTime() - startTime)
-                    / 1000000;
+                int elapsedTime = (int)((System.nanoTime() - startTime)
+                                        / 1000000);
 
                 if (oldx != c.x || oldy != c.y) {
                     System.out.println("Player " + c.playerID + " has "
