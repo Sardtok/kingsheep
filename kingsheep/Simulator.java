@@ -362,6 +362,14 @@ public class Simulator {
         else if (!p[1].sheep.alive && playerWon == 0
                  && p[1].score < p[0].score)
             playerWon = 1;
+        else if (!p[0].sheep.alive && !p[1].sheep.alive)
+            if (p[0].score < p[1].score)
+                playerWon = 2;
+            else if (p[1].score < p[0].score)
+                playerWon = 1;
+            else
+                playerWon = -1;
+            
 
         map[c.y][c.x] = c.type;
     }
