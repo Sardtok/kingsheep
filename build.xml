@@ -34,7 +34,9 @@
   <target name="compile" depends="init"
           description="compile the source">
     <javac srcdir="${kingsheep}"
-           destdir="${build}" />
+           destdir="${build}"
+           debug="true" debuglevel="lines,vars,source"
+           includeantruntime="false" />
     <jar destfile="${dist}/kingsheep.jar">
       <fileset dir="build/"/>
       <fileset dir="res/" />
