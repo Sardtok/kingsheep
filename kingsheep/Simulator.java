@@ -123,20 +123,49 @@ public class Simulator {
                         }
                     action(c);
                 }
+
+                checkMap();
+
+                if (playerWon != 0)
+                    break;
             }
         }
 
         if (playerWon == 0) {
-            if (p[0].score > p[1].score)
-                playerWon = 1;
-            else if (p[0].score < p[1].score)
-                playerWon = 2;
-            else
-                playerWon = -1;  // It's a draw
+            setWinner();
         }
 
         display(null);  // Display play winning screen
         strategy.show();
+    }
+
+    /**
+     * Checks if the map has any food left.
+     * If not it declares a winner.
+     * @see #setWinner()
+     */
+    private void checkMap() {
+        for (int i = 0; i < map.length; i++) {
+            for (int j = 0; j < map.length; j++) {
+                if (map[i][j] == Type.GRASS || map[i][j] == Type.RHUBARB) {
+                    return;
+                }
+            }
+        }
+
+        setWinner();
+    }
+
+    /**
+     * Declares a winner based on the team scores.
+     */
+    private void setWinner() {
+        if (p[0].score > p[1].score)
+            playerWon = 1;
+        else if (p[0].score < p[1].score)
+            playerWon = 2;
+        else
+            playerWon = -1;  // It's a draw
     }
 
     /** This method does magic stuff. Proceed at your own risk. */
@@ -176,14 +205,21 @@ public class Simulator {
         imgSkigard = loadImage("gfx/skigard.png");
     }
 
+    /**
+     * Loads an image through the resource system.
+     *
+     * @param fileName The name of the file to load.
+     * @return An ImageIcon containing the loaded image.
+     */
     private ImageIcon loadImage(String fileName) {
         ImageIcon ret = null;
         try {
             ret = new ImageIcon(getClass().getClassLoader()
                                 .getResource(fileName));
         } catch (Exception e) {
-            System.err.println("Teh gigantic image loading failz0r:\n "
-                               + e.getMessage());
+            System.err.printf("Could not load image (%s) - %s%n",
+                              fileName,
+                              e.getMessage());
             System.exit(1);
         }
         return ret;
@@ -306,7 +342,10 @@ public class Simulator {
      *         Creature to move.
      */
     public void action(Creature c) {
-
+        if (c.move == null) {
+            c.move = Creature.Move.WAIT;
+        }
+        
         switch (c.move) {
         case RIGHT:
             if ((c.x < Gfx.XUNIT - 1) && legalMove(c.x + 1, c.y, c.type)) {
