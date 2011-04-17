@@ -113,25 +113,18 @@ public class Simulator {
                 Thread thinker = new Thread(new Runnable() {
                         public void run() {
                             curCreature.think(curCreature.filter(mapCopy));
-                            synchronized (Simulator.this) {
-                                Simulator.this.notify();
-                            }
                         }
                     });
 
                 thinker.start();
-                synchronized (this) {
-                    while (true) {
-                        try {
-                            wait(THINKLIMIT + 10);
-                            if (thinker.isAlive()) {
-                                thinker.interrupt();
-                            }
-                        } catch (InterruptedException e) {
-                            continue;
-                        }
-                        break;
+                int maxWait = (int)((startTime / 1000000) + THINKLIMIT + 100);
+                while (true) {
+                    try {
+                        thinker.join(maxWait - (System.nanoTime() / 1000000));
+                    } catch (InterruptedException e) {
+                        continue;
                     }
+                    break;
                 }
 
                 int elapsedTime = (int)((System.nanoTime() - startTime)
