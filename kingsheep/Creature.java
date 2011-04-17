@@ -5,17 +5,14 @@ public abstract class Creature {
     protected enum Move { WAIT, UP, DOWN, LEFT, RIGHT }
 
     public final Type type;
-    private Simulator parent;
     public final int playerID;
     public Move move;
     public int x;
     public int y;
     public boolean alive;
 
-    protected Creature(Type type, Simulator parent, int playerID,
-                       int x, int y) {
+    protected Creature(Type type, int playerID, int x, int y) {
         this.type = type;
-        this.parent = parent;
         this.playerID = playerID;
         this.x = x;
         this.y = y;
