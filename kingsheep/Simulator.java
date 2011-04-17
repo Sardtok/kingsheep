@@ -217,12 +217,12 @@ public class Simulator {
         Creature sheep = (Creature)loader.loadClass(pack + "Sheep")
             .getConstructors()[0]
             .newInstance(playerID == 1 ? Type.SHEEP1 : Type.SHEEP2,
-                         this, playerID, -1, -1);
+                         playerID, -1, -1);
 
         Creature wolf = (Creature)loader.loadClass(pack + "Wolf")
             .getConstructors()[0]
             .newInstance(playerID == 1 ? Type.WOLF1 : Type.WOLF2,
-                         this, playerID, -1, -1);
+                         playerID, -1, -1);
 
         Player p = new Player(sheep, wolf, c);
 
