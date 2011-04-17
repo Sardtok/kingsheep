@@ -7,6 +7,7 @@ import java.awt.image.BufferStrategy;
 import java.awt.Color;
 import java.awt.Font;
 import javax.swing.ImageIcon;
+import javax.swing.SwingUtilities;
 
 public class Simulator {
 
@@ -67,8 +68,12 @@ public class Simulator {
             System.exit(1);
         }
 
-        loadImages();
-        strategy = gfx.getBufferStrategy();
+        SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    loadImages();
+                    strategy = gfx.getBufferStrategy();
+                }
+            });
         drawColor = new Color(222, 0, 222);
 
         map = MapLoader.loadMap(mapName, p);
@@ -88,18 +93,46 @@ public class Simulator {
                 if (!c.alive)
                     continue;
 
-                display(c);
-                strategy.show();
+                final Creature curCreature = c;
+                SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            display(curCreature);
+                            strategy.show();
+                        }
+                    });
 
                 int oldx = c.x;
                 int oldy = c.y;
                 long startTime = System.nanoTime();
 
-                Type[][] mapCopy = new Type[map.length][map[0].length];
+                final Type[][] mapCopy = new Type[map.length][map[0].length];
                 for (int i = 0; i < map.length; i++) {
                     System.arraycopy(map[i], 0, mapCopy[i], 0, map[i].length);
                 }
-                c.think(c.filter(mapCopy));
+
+                Thread thinker = new Thread(new Runnable() {
+                        public void run() {
+                            curCreature.think(curCreature.filter(mapCopy));
+                            synchronized (Simulator.this) {
+                                Simulator.this.notify();
+                            }
+                        }
+                    });
+
+                thinker.start();
+                synchronized (this) {
+                    while (true) {
+                        try {
+                            wait(THINKLIMIT + 10);
+                            if (thinker.isAlive()) {
+                                thinker.interrupt();
+                            }
+                        } catch (InterruptedException e) {
+                            continue;
+                        }
+                        break;
+                    }
+                }
 
                 int elapsedTime = (int)((System.nanoTime() - startTime)
                                         / 1000000);
@@ -135,8 +168,12 @@ public class Simulator {
             setWinner();
         }
 
-        display(null);  // Display play winning screen
-        strategy.show();
+        SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    display(null); // Display winning screen
+                    strategy.show();
+                }
+            });
     }
 
     /**
