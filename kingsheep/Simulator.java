@@ -176,7 +176,7 @@ public class Simulator {
      */
     private void checkMap() {
         for (int i = 0; i < map.length; i++) {
-            for (int j = 0; j < map.length; j++) {
+            for (int j = 0; j < map[i].length; j++) {
                 if (map[i][j] == Type.GRASS || map[i][j] == Type.RHUBARB) {
                     return;
                 }
