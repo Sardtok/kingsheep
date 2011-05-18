@@ -7,17 +7,26 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+/**
+ * A utility class that loads maps.
+ */
 class MapLoader {
 
-    public static Type[][] loadMap(String mapName, Player[] p) {
+    /**
+     * Loads the given map and creates the player objects
+     *
+     * @param mapName Name of the map file to load.
+     * @param p1 Player 1.
+     * @param p2 Player 2.
+     */
+    public static Type[][] loadMap(String mapName, Player p1, Player p2) {
 
         Type[][] map = new Type[Gfx.YUNIT][Gfx.XUNIT];
         BufferedReader in = null;
 
         try {
-            in = new BufferedReader(new InputStreamReader(MapLoader
-                                                          .class
-                                                          .getClassLoader()
+            in = new BufferedReader(new InputStreamReader(MapLoader.class
+							  .getClassLoader()
                                                           .getResourceAsStream
                                                           (mapName)));
         } catch (NullPointerException e) {
@@ -42,17 +51,17 @@ class MapLoader {
                 map[y][x] = Type.getType((char)next);
 
                 if (map[y][x] == Type.SHEEP1) {
-                    p[0].sheep.x = x;
-                    p[0].sheep.y = y;
+                    p1.sheep.x = x;
+                    p1.sheep.y = y;
                 } else if (map[y][x] == Type.SHEEP2) {
-                    p[1].sheep.x = x;
-                    p[1].sheep.y = y;
+                    p2.sheep.x = x;
+                    p2.sheep.y = y;
                 } else if (map[y][x] == Type.WOLF1) {
-                    p[0].wolf.x = x;
-                    p[0].wolf.y = y;
+                    p1.wolf.x = x;
+                    p1.wolf.y = y;
                 } else if (map[y][x] == Type.WOLF2) {
-                    p[1].wolf.x = x;
-                    p[1].wolf.y = y;
+                    p2.wolf.x = x;
+                    p2.wolf.y = y;
                 }
             }
         }
