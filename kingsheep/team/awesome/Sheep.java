@@ -10,9 +10,7 @@ public class Sheep extends Creature {
 
     protected void think(Type map[][]) {
 
-        int t = (int)(Math.random() * 4);
-
-        switch (t) {
+        switch ((int)(Math.random() * 4)) {
         case 0:
             move = Move.UP;
             break;

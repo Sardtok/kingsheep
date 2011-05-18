@@ -2,13 +2,12 @@ package kingsheep;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedList;
-import java.awt.Graphics;
-import java.awt.image.BufferStrategy;
-import java.awt.Color;
-import java.awt.Font;
-import javax.swing.ImageIcon;
-import javax.swing.SwingUtilities;
+import java.io.IOException;
+import java.io.OutputStream;
 
+/**
+ * A class for simulating a King Sheep match.
+ */
 public class Simulator {
 
     /** Font size used for the top-window text. */
@@ -19,7 +18,7 @@ public class Simulator {
 
     /** Minimum time to wait between player turns (even if a player used
         less time to think). */
-    private static final int WAITMIN = 30;
+    private static final int WAITMIN = 10;
 
     /** Number of turns for one game. */
     private static final int TURNS = 100;
@@ -39,54 +38,62 @@ public class Simulator {
     /** The player turn queue. */
     private LinkedList<Creature> turnQueue;
 
-    /** Our player objects goes in here. */
-    private Player p[] = new Player[2];
+    /** Holds the players and stats for this match. */
+    private Match match;
 
-    /** Java stuff for showing neat graphics. */
-    private Gfx gfx;
-    private BufferStrategy strategy;
-    private final Color drawColor;
+    /** The output stream*/
+    private OutputStream out;
 
-    /** All the images we need. */
-    private ImageIcon imgEmpty;
-    private ImageIcon imgSheep1;
-    private ImageIcon imgSheep2;
-    private ImageIcon imgWolf1;
-    private ImageIcon imgWolf2;
-    private ImageIcon imgGrass;
-    private ImageIcon imgRhubarb;
-    private ImageIcon imgSkigard;
+    /**
+     * Creates a simulator simulating the given match
+     * and sending to the given output stream.
+     *
+     * @param m The match to simulate.
+     * @param out The output stream to send packets over.
+     */
+    Simulator(Match m, OutputStream out) {
 
-    Simulator(String mapName, String team1, String team2) {
+        match = m;
+        this.out = out;
 
-        try {
-            p[0] = loadTeam(team1, new Color(222, 0, 0), 1);
-            p[1] = loadTeam(team2, new Color(0, 0, 222), 2);
-        } catch (Exception cnfe) {
-            System.out.println(cnfe.getMessage());
-            cnfe.printStackTrace();
-            System.exit(1);
-        }
+        map = MapLoader.loadMap(match.map, m.p1, m.p2);
 
-        SwingUtilities.invokeLater(new Runnable() {
-                public void run() {
-                    loadImages();
-                    strategy = gfx.getBufferStrategy();
+        int grass = 0;
+        int rhubarb = 0;
+        for (Type[] row : map) {
+            if (out != null)
+                try {
+                    Networking.sendPacket(out, new Networking.MapPacket(row));
+                } catch (IOException e) {
+                    System.err.printf("Could not send map to client: %s%n",
+                                      e.getMessage());
+                    System.exit(5);
                 }
-            });
-        drawColor = new Color(222, 0, 222);
-
-        map = MapLoader.loadMap(mapName, p);
+            for (Type t : row) {
+                if (t == Type.GRASS)
+                    grass++;
+                if (t == Type.RHUBARB)
+                    rhubarb++;
+            }
+        }
+        match.setTotals(grass, rhubarb);
 
         turnQueue = new LinkedList<Creature>();
 
-        turnQueue.addFirst(p[1].wolf);
-        turnQueue.addFirst(p[0].wolf);
-        turnQueue.addFirst(p[1].sheep);
-        turnQueue.addFirst(p[0].sheep);
-        turnQueue.addFirst(p[1].sheep);
-        turnQueue.addFirst(p[0].sheep);
+        turnQueue.addFirst(match.p2.wolf);
+        turnQueue.addFirst(match.p1.wolf);
+        turnQueue.addFirst(match.p2.sheep);
+        turnQueue.addFirst(match.p1.sheep);
+        turnQueue.addFirst(match.p2.sheep);
+        turnQueue.addFirst(match.p1.sheep);
+    }
 
+    /**
+     * Runs the simulation.
+     * Goes through every turn
+     * and has every creature think for their moves every turn.
+     */
+    public void run() {
         for (turn = 0; turn < TURNS && playerWon == 0; ++turn) {
             for (Creature c : turnQueue) {
 
@@ -94,15 +101,18 @@ public class Simulator {
                     continue;
 
                 final Creature curCreature = c;
-                SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            display(curCreature);
-                            strategy.show();
-                        }
-                    });
 
                 int oldx = c.x;
                 int oldy = c.y;
+                final String team = c.playerID == 1 ?
+                    match.team1 : match.team2;
+
+                if (map[oldy][oldx] != curCreature.type) {
+                    System.out.println(team + " has cheated! DISQUALIFIED!");
+                    playerWon = c.playerID == 1 ? 2 : 1;
+                    break;
+                }
+
                 long startTime = System.nanoTime();
 
                 final Type[][] mapCopy = new Type[map.length][map[0].length];
@@ -112,7 +122,19 @@ public class Simulator {
 
                 Thread thinker = new Thread(new Runnable() {
                         public void run() {
-                            curCreature.think(curCreature.filter(mapCopy));
+                            try {
+                                curCreature.think(curCreature.
+                                                  filter(mapCopy));
+                            } catch (RuntimeException e) {
+                                System.out.printf("%s - %s:%n%s @ %s%n",
+                                                  team,
+                                                  e.getMessage(),
+                                                  e.getClass().
+                                                  getCanonicalName(),
+                                                  e.getStackTrace()[0].
+                                                  toString());
+                                curCreature.move = Creature.Move.WAIT;
+                            }
                         }
                     });
 
@@ -120,34 +142,41 @@ public class Simulator {
                 int maxWait = (int)((startTime / 1000000) + THINKLIMIT + 100);
                 while (true) {
                     try {
-                        thinker.join(maxWait - (System.nanoTime() / 1000000));
+                        int wait = maxWait - (int)(System.nanoTime() / 1000000);
+                        thinker.join(wait);
                     } catch (InterruptedException e) {
+                        System.out.println("OH NO, TEH INTERRUPTION!");
                         continue;
                     }
                     break;
                 }
 
-                int elapsedTime = (int)((System.nanoTime() - startTime)
-                                        / 1000000);
+                long elapsedTime = (System.nanoTime() - startTime);
+                match.think(c.playerID, elapsedTime);
+                elapsedTime /= 1000000;
 
                 if (oldx != c.x || oldy != c.y) {
-                    System.out.println("Player " + c.playerID + " has "
-                                       + "cheated! DISQUALIFIED!");
-                    System.exit(0);
+                    System.out.println(team + " has cheated! DISQUALIFIED!");
+                    playerWon = c.playerID == 1 ? 2 : 1;
                 }
 
                 if (elapsedTime > THINKLIMIT) {
-                    System.out.println("Player " + c.playerID + " used over "
-                                       + "one second! DISQUALIFIED!");
+                    System.out.println(team + " used over one second! "
+                                       + "DISQUALIFIED!");
                     playerWon = c.playerID == 1 ? 2 : 1;
+                    match.disqualify(c.playerID);
                 } else {
-                    if (elapsedTime < WAITMIN)
-                        try {
-                            Thread.sleep(WAITMIN - elapsedTime);
-                        } catch (InterruptedException ie) {
-                            System.out.println(ie.getMessage());
-                        }
                     action(c);
+                    if (out != null)
+                        try {
+                            Networking.sendPacket(out,
+                                                  new Networking.MovePacket(c.type,
+                                                                            c.move));
+                        } catch (IOException e) {
+                            System.err.printf("Could not send move: %s%n",
+                                              e.getMessage());
+                            System.exit(5);
+                        }
                 }
 
                 checkMap();
@@ -155,18 +184,23 @@ public class Simulator {
                 if (playerWon != 0)
                     break;
             }
+            if (out != null)
+                try {
+                    Networking.sendPacket(out,
+                                          new Networking.Packet(new byte[]
+                                              {Networking.ENDTURN}));
+                } catch (IOException e) {
+                    System.err.printf("Could not send end turn: %s%n",
+                                      e.getMessage());
+                    System.exit(5);
+                }
         }
 
         if (playerWon == 0) {
             setWinner();
         }
 
-        SwingUtilities.invokeLater(new Runnable() {
-                public void run() {
-                    display(null); // Display winning screen
-                    strategy.show();
-                }
-            });
+        match.win(playerWon);
     }
 
     /**
@@ -190,150 +224,12 @@ public class Simulator {
      * Declares a winner based on the team scores.
      */
     private void setWinner() {
-        if (p[0].score > p[1].score)
+        if (match.p1.score > match.p2.score)
             playerWon = 1;
-        else if (p[0].score < p[1].score)
+        else if (match.p1.score < match.p2.score)
             playerWon = 2;
         else
             playerWon = -1;  // It's a draw
-    }
-
-    /** This method does magic stuff. Proceed at your own risk. */
-    Player loadTeam(String teamName, Color c, int playerID)
-        throws ClassNotFoundException, InstantiationException,
-               NoSuchMethodException, IllegalAccessException,
-               InvocationTargetException
-    {
-        ClassLoader loader = getClass().getClassLoader();
-        String pack = "kingsheep.team." + teamName + ".";
-
-        Creature sheep = (Creature)loader.loadClass(pack + "Sheep")
-            .getConstructors()[0]
-            .newInstance(playerID == 1 ? Type.SHEEP1 : Type.SHEEP2,
-                         playerID, -1, -1);
-
-        Creature wolf = (Creature)loader.loadClass(pack + "Wolf")
-            .getConstructors()[0]
-            .newInstance(playerID == 1 ? Type.WOLF1 : Type.WOLF2,
-                         playerID, -1, -1);
-
-        Player p = new Player(sheep, wolf, c);
-
-        return p;
-    }
-
-    /** Loads the necessary image files. */
-    private void loadImages() {
-        gfx        = new Gfx();
-        imgEmpty   = loadImage("gfx/empty.png");
-        imgSheep1  = loadImage("gfx/sheep1.png");
-        imgSheep2  = loadImage("gfx/sheep2.png");
-        imgWolf1   = loadImage("gfx/wolf1.png");
-        imgWolf2   = loadImage("gfx/wolf2.png");
-        imgGrass   = loadImage("gfx/grass.png");
-        imgRhubarb = loadImage("gfx/rhubarb.png");
-        imgSkigard = loadImage("gfx/skigard.png");
-    }
-
-    /**
-     * Loads an image through the resource system.
-     *
-     * @param fileName The name of the file to load.
-     * @return An ImageIcon containing the loaded image.
-     */
-    private ImageIcon loadImage(String fileName) {
-        ImageIcon ret = null;
-        try {
-            ret = new ImageIcon(getClass().getClassLoader()
-                                .getResource(fileName));
-        } catch (Exception e) {
-            System.err.printf("Could not load image (%s) - %s%n",
-                              fileName,
-                              e.getMessage());
-            System.exit(1);
-        }
-        return ret;
-    }
-
-    /** Displays the screen.
-     *
-     *  @param c
-     *         Creature whose turn it is to move.
-     */
-    private void display(Creature c) {
-        Graphics g = strategy.getDrawGraphics();
-        ImageIcon drawMe = null;
-
-        g.setColor(Color.GREEN);
-        g.fillRect(0, 0, Gfx.WIDTH, Gfx.HEIGHT);
-
-        for (int i = 0; i < Gfx.YUNIT; ++i) {
-            for (int j = 0; j < Gfx.XUNIT; ++j) {
-                switch (map[i][j]) {
-                case EMPTY:
-                    drawMe = imgEmpty;
-                    break;
-                case GRASS:
-                    drawMe = imgGrass;
-                    break;
-                case FENCE:
-                    drawMe = imgSkigard;
-                    break;
-                case RHUBARB:
-                    drawMe = imgRhubarb;
-                    break;
-                case SHEEP1:
-                    drawMe = imgSheep1;
-                    break;
-                case SHEEP2:
-                    drawMe = imgSheep2;
-                    break;
-                case WOLF1:
-                    drawMe = imgWolf1;
-                    break;
-                case WOLF2:
-                    drawMe = imgWolf2;
-                    break;
-                default:
-                    break;
-                }
-
-                g.drawImage(drawMe.getImage(), j * Gfx.UNIT, i * Gfx.UNIT,
-                            null, null);
-            }
-        }
-
-        g.setFont(new Font(Font.MONOSPACED, Font.BOLD, FONTSIZE));
-        g.setColor(Color.RED);
-
-        if (c != null) {
-            String species = c.isSheep() ? "Sheep" : "Wolf";
-            g.drawString("Player " + c.playerID + " (" + species
-                         + ") thinking...", 5, 14);
-        }
-
-        g.drawString("Turn " + turn + "/" + TURNS,
-                     Gfx.WIDTH - 90, 14);
-        g.setColor(p[0].color);
-        g.drawString("Player 1 score: " + p[0].score, 300, 14);
-        g.setColor(p[1].color);
-        g.drawString("Player 2 score: " + p[1].score, 550, 14);
-
-        if (playerWon != 0) {
-            g.setColor(Color.RED);
-            g.setFont(new Font(Font.MONOSPACED, Font.BOLD, 100));
-            if (playerWon == -1) {
-                g.setColor(drawColor);
-                g.drawString("It's a draw!",
-                             130, Gfx.HEIGHT / 2);
-            } else {
-                g.setColor(p[playerWon - 1].color);
-                g.drawString("Player " + playerWon + " won!",
-                             100, Gfx.HEIGHT / 2);
-            }
-        }
-
-        g.dispose();
     }
 
     /** Determines whether the planned move is legal.
@@ -372,16 +268,14 @@ public class Simulator {
      *         Creature to move.
      */
     public void action(Creature c) {
-        if (c.move == null) {
-            c.move = Creature.Move.WAIT;
-        }
-        
+
         switch (c.move) {
         case RIGHT:
             if ((c.x < Gfx.XUNIT - 1) && legalMove(c.x + 1, c.y, c.type)) {
                 map[c.y][c.x] = Type.EMPTY;
                 c.x++;
             } else {
+                c.move = Creature.Move.WAIT;
                 return;
             }
             break;
@@ -390,6 +284,7 @@ public class Simulator {
                 map[c.y][c.x] = Type.EMPTY;
                 c.x--;
             } else {
+                c.move = Creature.Move.WAIT;
                 return;
             }
             break;
@@ -398,6 +293,7 @@ public class Simulator {
                 map[c.y][c.x] = Type.EMPTY;
                 c.y--;
             } else {
+                c.move = Creature.Move.WAIT;
                 return;
             }
             break;
@@ -406,6 +302,7 @@ public class Simulator {
                 map[c.y][c.x] = Type.EMPTY;
                 c.y++;
             } else {
+                c.move = Creature.Move.WAIT;
                 return;
             }
             break;
@@ -413,33 +310,40 @@ public class Simulator {
             break;
         }
 
-        if (map[c.y][c.x] == Type.GRASS && c.isSheep())
-            p[c.playerID - 1].score++;
-        else if (map[c.y][c.x] == Type.RHUBARB && c.isSheep())
-            p[c.playerID - 1].score += 5;
-        else if (map[c.y][c.x] == Type.SHEEP1 && c.type == Type.WOLF2)
-            p[0].sheep.alive = false;
-        else if (map[c.y][c.x] == Type.SHEEP2 && c.type == Type.WOLF1)
-            p[1].sheep.alive = false;
-        else if (map[c.y][c.x] == Type.WOLF2 && c.type == Type.SHEEP1)
-            p[0].sheep.alive = false;
-        else if (map[c.y][c.x] == Type.WOLF1 && c.type == Type.SHEEP2)
-            p[1].sheep.alive = false;
+        if (map[c.y][c.x] == Type.GRASS) {
+            if (c.isSheep())
+                match.eatGrass(c.playerID);
+            else
+                match.crushGrass(c.playerID);
+        } else if (map[c.y][c.x] == Type.RHUBARB) {
+            if (c.isSheep())
+                match.eatRhubarb(c.playerID);
+            else
+                match.crushRhubarb(c.playerID);
+        } else if (map[c.y][c.x] == Type.SHEEP1 && c.type == Type.WOLF2) {
+            match.eatSheep(c.playerID);
+        } else if (map[c.y][c.x] == Type.SHEEP2 && c.type == Type.WOLF1) {
+            match.eatSheep(c.playerID);
+        } else if (map[c.y][c.x] == Type.WOLF2 && c.type == Type.SHEEP1) {
+            match.eatSheep(2);
+        } else if (map[c.y][c.x] == Type.WOLF1 && c.type == Type.SHEEP2) {
+            match.eatSheep(1);
+        }
 
-        if (!p[0].sheep.alive && playerWon == 0 && p[0].score < p[1].score)
+        if (!match.p1.sheep.alive && playerWon == 0 && match.p1.score < match.p2.score)
             playerWon = 2;
-        else if (!p[1].sheep.alive && playerWon == 0
-                 && p[1].score < p[0].score)
+        else if (!match.p2.sheep.alive && playerWon == 0
+                 && match.p2.score < match.p1.score)
             playerWon = 1;
-        else if (!p[0].sheep.alive && !p[1].sheep.alive)
-            if (p[0].score < p[1].score)
+        else if (!match.p1.sheep.alive && !match.p2.sheep.alive)
+            if (match.p1.score < match.p2.score)
                 playerWon = 2;
-            else if (p[1].score < p[0].score)
+            else if (match.p2.score < match.p1.score)
                 playerWon = 1;
             else
                 playerWon = -1;
             
-
         map[c.y][c.x] = c.type;
+        
     }
 }
