@@ -54,9 +54,10 @@ public class Simulator {
     Simulator(Match m, OutputStream out) {
 
         match = m;
+        match.loadTeams();
         this.out = out;
 
-        map = MapLoader.loadMap(match.map, m.p1, m.p2);
+        map = MapLoader.loadMap(match.map, match.p1, match.p2);
 
         int grass = 0;
         int rhubarb = 0;

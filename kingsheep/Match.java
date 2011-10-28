@@ -33,14 +33,6 @@ class Match {
         this.team2 = team2;
         this.stats2 = new Statistics(team2);
         this.map = map;
-        try {
-            p1 = loadTeam(team1, 1);
-            p2 = loadTeam(team2, 2);
-        } catch (Exception e) {
-            System.err.printf("Could not load teams: %s%n",
-                              e.getMessage());
-            System.exit(5);
-        }
     }
 
     /**
@@ -64,6 +56,10 @@ class Match {
             stats2.draw();
             break;
         }
+
+        // Hopefully this should clean up the player objects.
+        p1 = null;
+        p2 = null;
     }
 
     /**
@@ -188,6 +184,21 @@ class Match {
         pw.print(";");
         stats2.write(pw);
         pw.close();
+    }
+
+    /**
+     * Loads the teams for this match.
+     * This must be called prior to playing the match.
+     */
+    public void loadTeams() {
+        try {
+            p1 = loadTeam(team1, 1);
+            p2 = loadTeam(team2, 2);
+        } catch (Exception e) {
+            System.err.printf("Could not load teams: %s%n",
+                              e.getMessage());
+            System.exit(5);
+        }
     }
 
     /**
