@@ -1,0 +1,26 @@
+# Praktisk informasjon #
+
+  * Dere kan være så mange dere ønsker på hvert lag.
+  * Man kan kun delta én gang. Altså, man kan ikke være med på flere lag eller levere flere forskjellige AIer for å øke vinnersjansene sine. Siste innleverte AI/versjon regnes som ens bidrag.
+  * Leveringsfristen er ikke satt enda, men vil tidligst bli en gang etter påske.
+  * Selve turneringen vil kjøres i flere runder, med forskjellige kart (_test.map_ som medfølger vil ikke bli brukt). Selve kartstørrelsen vil være konstant (19 x 15).
+  * Premiene er ikke bestemt enda.
+
+# Introduksjon #
+
+  * Du skal lage to klasser i pakken kingsheep.team.lagnavn (bytt ut lagnavn med navnet på laget ditt): Sheep og Wolf. Begge har samme struktur. En konstruktør og metoden think.
+  * Du kan lage så mange hjelpemetoder du vil.
+  * Du kan lage hjelpeklasser i pakken.
+  * Du kan bruke standard API-et til Sun, men ikke eksterne biblioteker.
+  * Du kan ikke endre på signaturen til konstruktøren i klassene, men du kan legge til kode i konstruktøren for å initialisere saue- og ulveobjektene.
+  * Du får ett sekund til think-metoden hver omgang. Man taper automatisk om man bruker mer tid enn dette.
+  * Du kan lage så mange tråder du vil, men trådene har ikke lov til å kjøre utenfor det sekundet du har på å tenke. Altså, AIen har ikke lov til å tenke utover sekundet den har til rådighet i think.
+
+# Reaksjonsmatrise #
+
+|        | ![http://kingsheep.googlecode.com/hg/res/gfx/sheep1.png](http://kingsheep.googlecode.com/hg/res/gfx/sheep1.png)| ![http://kingsheep.googlecode.com/hg/res/gfx/sheep2.png](http://kingsheep.googlecode.com/hg/res/gfx/sheep2.png) | ![http://kingsheep.googlecode.com/hg/res/gfx/wolf1.png](http://kingsheep.googlecode.com/hg/res/gfx/wolf1.png) | ![http://kingsheep.googlecode.com/hg/res/gfx/wolf2.png](http://kingsheep.googlecode.com/hg/res/gfx/wolf2.png) | ![http://kingsheep.googlecode.com/hg/res/gfx/skigard.png](http://kingsheep.googlecode.com/hg/res/gfx/skigard.png)|![http://kingsheep.googlecode.com/hg/res/gfx/grass.png](http://kingsheep.googlecode.com/hg/res/gfx/grass.png)|![http://kingsheep.googlecode.com/hg/res/gfx/rhubarb.png](http://kingsheep.googlecode.com/hg/res/gfx/rhubarb.png) |
+|:-------|:---------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------|
+| ![http://kingsheep.googlecode.com/hg/res/gfx/sheep1.png](http://kingsheep.googlecode.com/hg/res/gfx/sheep1.png) | -      |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)     |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |p1.score++|p1.score += 5  |
+| ![http://kingsheep.googlecode.com/hg/res/gfx/sheep2.png](http://kingsheep.googlecode.com/hg/res/gfx/sheep2.png) |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)     | -      |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |p2.score++|p2.score += 5  |
+| ![http://kingsheep.googlecode.com/hg/res/gfx/wolf1.png](http://kingsheep.googlecode.com/hg/res/gfx/wolf1.png)  |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)     |Sau 2 svelges| -     |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |Gress ødelegges       | Rabarbra ødelegges        |
+| ![http://kingsheep.googlecode.com/hg/res/gfx/wolf2.png](http://kingsheep.googlecode.com/hg/res/gfx/wolf2.png)  |Sau 1 svelges|![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)    |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)       | -     |![http://kingsheep.googlecode.com/hg/res/gfx/cross.png](http://kingsheep.googlecode.com/hg/res/gfx/cross.png)      |Gress ødelegges      | Rabarbra ødelegges        |
